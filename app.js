@@ -5,7 +5,9 @@ let cookingModeActive=false;
 const SUPABASE_URL='https://rddsbyawyhmihigbhbtj.supabase.co';
 const SUPABASE_KEY='sb_publishable_Cj1yZyLDkZfIVb-LrUR7bw_VPe9VMJn';
 const SUPABASE_TABLE='recipe_notes';
+const RECIPE_VERSIONS_TABLE='recipe_versions';
 let sharedRecipeData={};
+let recipeVersions={};
 
 async function supabaseRequest(path,options={}){
   const headers={
@@ -108,6 +110,7 @@ async function saveSharedRecipeData(id,{rating,note}){
   );
 
   sharedRecipeData[id]=next;
+  syncCurrentVersionFeedback(id);
 }
 
 async function migrateLocalDataIfNeeded(){
@@ -123,6 +126,108 @@ async function migrateLocalDataIfNeeded(){
     }catch(err){
       console.error('Local data migration failed:',r.id,err);
     }
+  }
+}
+
+async function loadRecipeVersions(){
+  try{
+    const data=await supabaseRequest(
+      RECIPE_VERSIONS_TABLE+'?select=recipe_id,version,recipe_data,rating,note,created_at&order=recipe_id.asc,version.asc'
+    );
+    recipeVersions={};
+    (data||[]).forEach(row=>{
+      if(!recipeVersions[row.recipe_id]) recipeVersions[row.recipe_id]=[];
+      recipeVersions[row.recipe_id].push(row);
+    });
+    return true;
+  }catch(error){
+    console.error('Version read error:',error);
+    return false;
+  }
+}
+
+function getVersions(id){
+  return recipeVersions[id]||[];
+}
+
+function getCurrentVersion(id){
+  const versions=getVersions(id);
+  return versions.length ? Math.max(...versions.map(v=>Number(v.version)||1)) : 1;
+}
+
+function getLatestVersionRow(id){
+  const versions=getVersions(id);
+  if(!versions.length) return null;
+  return versions.reduce((latest,row)=>
+    Number(row.version)>Number(latest.version)?row:latest
+  ,versions[0]);
+}
+
+function getVersionRow(id,version){
+  return getVersions(id).find(v=>Number(v.version)===Number(version))||null;
+}
+
+async function bootstrapRecipeVersions(){
+  const missing=recipes.filter(r=>getVersions(r.id).length===0);
+  if(!missing.length) return;
+
+  const rows=missing.map(r=>({
+    recipe_id:r.id,
+    version:1,
+    recipe_data:r,
+    rating:getRating(r.id)||null,
+    note:getNote(r.id)||''
+  }));
+
+  await supabaseRequest(
+    RECIPE_VERSIONS_TABLE,
+    {
+      method:'POST',
+      headers:{Prefer:'return=minimal'},
+      body:JSON.stringify(rows)
+    }
+  );
+
+  rows.forEach(row=>{
+    recipeVersions[row.recipe_id]=[{
+      ...row,
+      created_at:new Date().toISOString()
+    }];
+  });
+}
+
+function applyLatestVersions(){
+  recipes=recipes.map(base=>{
+    const latest=getLatestVersionRow(base.id);
+    if(!latest || !latest.recipe_data) return base;
+    return {...base,...latest.recipe_data,id:base.id};
+  });
+}
+
+async function syncCurrentVersionFeedback(id){
+  const version=getCurrentVersion(id);
+  const current=sharedRecipeData[id]||{rating:0,note:''};
+  try{
+    await supabaseRequest(
+      RECIPE_VERSIONS_TABLE+
+      '?recipe_id=eq.'+encodeURIComponent(id)+
+      '&version=eq.'+encodeURIComponent(version),
+      {
+        method:'PATCH',
+        headers:{Prefer:'return=minimal'},
+        body:JSON.stringify({
+          rating:current.rating||null,
+          note:current.note||''
+        })
+      }
+    );
+    const row=getVersionRow(id,version);
+    if(row){
+      row.rating=current.rating||null;
+      row.note=current.note||'';
+    }
+  }catch(error){
+    console.error('Version feedback sync error:',error);
   }
 }
 
@@ -229,7 +334,7 @@ function render(){
     card.innerHTML=
       '<div class="card-top">'+
         '<span class="category-badge">'+escapeHtml(r.category)+'</span>'+
-        '<span class="time-badge">約 '+r.minutes+' 分</span>'+
+        '<span class="time-badge">約 '+r.minutes+' 分 · ver.'+getCurrentVersion(r.id)+'</span>'+
       '</div>'+
       '<span class="genre-pill"><span class="genre-icon">'+meta.icon+'</span>'+escapeHtml(meta.label)+'</span>'+
       '<h3>'+escapeHtml(r.title)+'</h3>'+
@@ -267,6 +372,10 @@ function buildImprovementPrompt(r){
     '',
     '【料理名】',
     r.title,
+    '',
+    '【現在のバージョン】',
+    'ver.'+getCurrentVersion(r.id),
+    'このレシピを元に、次の ver.'+(getCurrentVersion(r.id)+1)+' を作る前提で改善してください。',
     '',
     '【現在の評価】',
     '★ '+rating+' / 10',
@@ -310,6 +419,68 @@ function buildImprovementSummary(r){
   );
 }
 
+function renderHistoricalVersion(r,versionRow){
+  const vr=versionRow.recipe_data||r;
+  const meta=getGenreMeta(vr.genre||r.genre);
+  const rating=Number(versionRow.rating||0);
+  const note=versionRow.note||'';
+
+  els.content.innerHTML=
+    '<article class="detail '+meta.className+' historical-version">'+
+      '<header class="detail-header">'+
+        '<div class="detail-genre-row">'+
+          '<span class="genre-pill"><span class="genre-icon">'+meta.icon+'</span>'+escapeHtml(meta.label)+'</span>'+
+          '<p class="detail-kicker">HISTORY</p>'+
+        '</div>'+
+        '<h2>'+escapeHtml(vr.title||r.title)+'</h2>'+
+        '<div class="detail-meta">'+
+          '<span>約 '+vr.minutes+' 分</span>'+
+          '<span>'+escapeHtml(vr.servings||'')+'</span>'+
+          '<span>'+(rating?'★ '+rating+' / 10':'未評価')+'</span>'+
+          '<span class="version-badge">ver.'+versionRow.version+'</span>'+
+        '</div>'+
+        '<p class="summary">'+escapeHtml(vr.summary||'')+'</p>'+
+        '<button id="backToCurrentVersion" class="version-back-button" type="button">現在の ver.'+getCurrentVersion(r.id)+' に戻る</button>'+
+      '</header>'+
+      '<div class="recipe-body"><div class="recipe-materials">'+
+        section('材料','<ul class="ingredients-list">'+(vr.ingredients||[]).map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul>')+
+      '</div><div class="recipe-method">'+
+        section('下準備','<ol>'+(vr.prep||[]).map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ol>')+
+        section('調理手順','<ol>'+(vr.steps||[]).map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ol>')+
+        section('失敗しないポイント','<ul>'+(vr.points||[]).map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul>')+
+        section('追加すると美味しい食材・アレンジ','<ul>'+(vr.arrangements||[]).map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul>')+
+      '</div></div>'+
+      '<div class="version-feedback">'+
+        '<h3>このバージョン当時の評価・メモ</h3>'+
+        '<p><strong>評価：</strong>'+(rating?'★ '+rating+' / 10':'未評価')+'</p>'+
+        '<p><strong>メモ：</strong>'+(note?escapeHtml(note):'なし')+'</p>'+
+      '</div>'+
+    '</article>';
+
+  els.content.querySelector('#backToCurrentVersion').addEventListener('click',()=>openRecipe(r));
+  els.dialog.scrollTop=0;
+}
+
+function buildVersionHistory(r){
+  const current=getCurrentVersion(r.id);
+  const older=getVersions(r.id)
+    .filter(v=>Number(v.version)<current)
+    .sort((a,b)=>Number(b.version)-Number(a.version));
+
+  if(!older.length) return '<p>過去のバージョンはありません。</p>';
+
+  return '<div class="version-list">'+older.map(v=>{
+    const d=v.recipe_data||{};
+    const date=v.created_at ? new Date(v.created_at).toLocaleDateString('ja-JP') : '';
+    const rating=Number(v.rating||0);
+    return '<button type="button" class="version-list-item" data-version="'+v.version+'">'+
+      '<span><strong>ver.'+v.version+'</strong>'+(date?' <small>'+escapeHtml(date)+'</small>':'')+'</span>'+
+      '<span>'+(rating?'★ '+rating+' / 10':'未評価')+'</span>'+
+      '<span class="version-list-summary">'+escapeHtml(d.summary||'')+'</span>'+
+    '</button>';
+  }).join('')+'</div>';
+}
+
 function openRecipe(r){
   const rating=getRating(r.id),note=getNote(r.id);
   const meta=getGenreMeta(r.genre);
@@ -326,8 +497,13 @@ function openRecipe(r){
           '<span>約 '+r.minutes+' 分</span>'+
           '<span>'+escapeHtml(r.servings)+'</span>'+
           '<span id="detailRating" aria-live="polite">'+(rating?'★ '+rating+' / 10':'未評価')+'</span>'+
+          '<span class="version-badge">ver.'+getCurrentVersion(r.id)+'</span>'+
         '</div>'+
         '<p class="summary">'+escapeHtml(r.summary)+'</p>'+
+        (getVersions(r.id).length>1
+          ? '<button id="versionHistoryButton" class="version-history-button" type="button">過去のバージョンを見る（'+(getVersions(r.id).length-1)+'）</button>'
+          : '')+
+        '<div id="versionHistoryPanel" class="version-history-panel" hidden></div>'+
         '<div class="cooking-toolbar">'+
           '<button id="cookingModeButton" class="cooking-mode-button" type="button">🍳 料理モード ON</button>'+
           '<span id="cookingModeStatus" class="cooking-mode-status">画面の自動スリープを防ぎます</span>'+
@@ -355,6 +531,23 @@ function openRecipe(r){
     '</article>';
 
   setupCookingModeControls();
+
+  const versionHistoryButton=els.content.querySelector('#versionHistoryButton');
+  if(versionHistoryButton){
+    versionHistoryButton.addEventListener('click',()=>{
+      const panel=els.content.querySelector('#versionHistoryPanel');
+      panel.innerHTML=buildVersionHistory(r);
+      panel.hidden=false;
+      panel.querySelectorAll('[data-version]').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          const row=getVersionRow(r.id,Number(btn.dataset.version));
+          if(row) renderHistoricalVersion(r,row);
+        });
+      });
+      panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+    });
+  }
+
   els.content.querySelectorAll('[data-rating]').forEach(btn=>{
     btn.setAttribute('aria-pressed',String(Number(btn.dataset.rating)===rating));
     btn.addEventListener('click',async()=>{
@@ -568,9 +761,19 @@ async function syncSharedData(){
   const cloudLoaded=await loadSharedRecipeData();
   if(!cloudLoaded) return;
 
-  render();
-
   await migrateLocalDataIfNeeded();
+
+  const versionsLoaded=await loadRecipeVersions();
+  if(versionsLoaded){
+    try{
+      await bootstrapRecipeVersions();
+      applyLatestVersions();
+      renderLegend();
+    }catch(error){
+      console.error('Version bootstrap error:',error);
+    }
+  }
+
   render();
 }
 
