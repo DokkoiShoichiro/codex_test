@@ -160,3 +160,57 @@ body:has(#recipeDialog[open]){overflow:hidden}
   .dialog-close{width:44px;height:44px;top:max(8px,env(safe-area-inset-top));margin:8px 8px 0 0}
   .userbox{padding:16px}
 }
+
+
+.improve-recipe-button{
+  margin-top:12px;
+  width:100%;
+  border:1px solid currentColor;
+  background:transparent;
+  border-radius:12px;
+  padding:12px 14px;
+  font-weight:700;
+  cursor:pointer;
+}
+.improvement-panel{
+  margin-top:16px;
+}
+.improvement-card{
+  border:1px solid rgba(25,57,45,.18);
+  border-radius:16px;
+  padding:18px;
+  background:rgba(25,57,45,.04);
+}
+.improvement-kicker{
+  margin:0 0 6px;
+  font-size:.72rem;
+  letter-spacing:.12em;
+  font-weight:800;
+  opacity:.65;
+}
+.improvement-card h3{
+  margin:0 0 12px;
+}
+.improvement-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px 14px;
+  margin-bottom:14px;
+  font-size:.9rem;
+}
+.improvement-card section{
+  margin-top:14px;
+}
+.improvement-card h4{
+  margin:0 0 6px;
+}
+.improvement-card ul,
+.improvement-card ol{
+  margin:0;
+  padding-left:1.4em;
+}
+.improvement-note{
+  margin-top:16px;
+  font-size:.9rem;
+  opacity:.72;
+}
