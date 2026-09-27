@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#19392d">
   <title>うちのレシピ帳</title>
-  <link rel="stylesheet" href="styles.css?v=20260927-1215">
+  <link rel="stylesheet" href="styles.css?v=20260927-1220">
 </head>
 <body>
 <header class="hero">
@@ -30,10 +30,13 @@
 <main>
   <section class="search-panel">
     <div class="search-main">
-      <label class="search-box">
-        <span class="search-icon">⌕</span>
-        <input id="q" type="search" placeholder="料理名・食材・タグで検索">
-      </label>
+      <div class="search-row">
+        <label class="search-box">
+          <span class="search-icon">⌕</span>
+          <input id="q" type="search" placeholder="料理名・食材・タグで検索">
+        </label>
+        <button id="searchButton" class="search-button" type="button">検索</button>
+      </div>
     </div>
     <div class="filters">
       <select id="genre"><option value="">ジャンル：すべて</option></select>
@@ -84,6 +87,6 @@
   <div id="dialogContent"></div>
 </dialog>
 
-<script src="app.js?v=20260927-1215"></script>
+<script src="app.js?v=20260927-1220"></script>
 </body>
 </html>
