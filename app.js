@@ -314,6 +314,7 @@ function renderLegend(){
     chip.type='button';
     chip.className='legend-chip'+(els.genre.value===genre?' active':'');
     chip.dataset.genre=genre;
+    chip.setAttribute('aria-pressed',String(els.genre.value===genre));
     chip.innerHTML='<span class="legend-icon '+meta.className+'">'+meta.icon+'</span><span>'+escapeHtml(meta.label)+'</span>';
     chip.addEventListener('click',()=>{
       els.genre.value = els.genre.value===genre ? '' : genre;
@@ -365,16 +366,18 @@ function render(){
 
   const activeCount=recipes.filter(r=>!isDeleted(r.id)).length;
   els.count.textContent=list.length+' / '+activeCount+' 件';
-  els.list.innerHTML='';
+  els.list.innerHTML=list.length?'':'<p class="empty-state">該当するレシピがありません。<br>食材や検索条件を変えてみてください。</p>';
 
-  list.forEach(r=>{
+  list.forEach((r,index)=>{
     const rating=getRating(r.id);
     const meta=getGenreMeta(r.genre);
     const card=document.createElement('article');
     card.className='card '+meta.className;
     card.tabIndex=0;
+    card.setAttribute('role','button');
+    card.setAttribute('aria-label',r.title+'のレシピを開く');
     card.innerHTML=
-      '<div class="card-top">'+
+      '<div class="card-top"><span class="recipe-number" aria-hidden="true">'+String(index+1).padStart(2,'0')+'</span>'+
         '<span class="category-badge">'+escapeHtml(r.category)+'</span>'+
         '<span class="time-badge">約 '+r.minutes+' 分 · ver.'+getCurrentVersion(r.id)+'</span>'+
       '</div>'+
@@ -385,8 +388,8 @@ function render(){
         (r.ingredients_tags||[]).slice(0,4).map(t=>'<span class="tag">'+escapeHtml(t)+'</span>').join('')+
       '</div>'+
       '<div class="card-footer">'+
-        '<span class="genre-label">'+escapeHtml(r.genre)+'</span>'+
-        '<span class="rating-line '+(rating?'':'unrated')+'">'+(rating?'★ '+rating+' / 10':'NOT RATED')+'</span>'+
+        '<span class="genre-label">レシピを読む <span aria-hidden="true">↗</span></span>'+
+        '<span class="rating-line '+(rating?'':'unrated')+'">'+(rating?'★ '+rating+' / 10':'未評価')+'</span>'+
       '</div>';
 
     const open=()=>openRecipe(r);
@@ -728,6 +731,7 @@ els.clear.addEventListener('click',()=>{
   els.minutes.value='';
   els.rating.value='';
   els.sort.value='title';
+  renderLegend();
   render();
 });
 els.close.addEventListener('click',()=>els.dialog.close());

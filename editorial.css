@@ -1,0 +1,107 @@
+
+/* Editorial theme: quiet paper, strong typography, clear reading order. */
+:root{--bg:#f5f2ea;--paper:#fcfaf5;--card:#fcfaf5;--ink:#203a31;--muted:#686b61;--line:#d6d4c8;--green:#203f33;--green-2:#365444}
+body{background:var(--bg);-webkit-font-smoothing:antialiased}
+::selection{background:#dce5d0;color:#173527}
+:focus-visible{outline:3px solid #b56a3e;outline-offset:5px}
+.hero{background:var(--bg);color:var(--ink);border-top:6px solid var(--green)}
+.hero-inner{max-width:1280px;padding:24px 40px 32px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:34px}
+.brand-row{grid-column:1/-1;opacity:1;border-bottom:1px solid var(--green);padding-bottom:20px}
+.brand-mark{border-color:var(--green);border-radius:0;width:28px;height:28px;font-size:20px}
+.brand-name{font-size:11px;letter-spacing:.16em}
+.archive-link{margin-left:auto;color:var(--ink);text-decoration:none;font-size:12px}
+.archive-link span{margin-left:16px;font-size:20px}
+.hero-copy{margin:0;max-width:none}
+.eyebrow{color:#727966;font-size:10px;letter-spacing:.2em;margin-bottom:16px}
+.hero h1{font-size:clamp(40px,5.2vw,70px);line-height:1.2;letter-spacing:.02em}
+.hero h1>span{white-space:nowrap}
+.hero h1 .title-dot{color:#b46d45}
+.lead{color:#666d61;line-height:1.9;font-size:14px;margin-top:16px}
+.hero-stats{align-self:end;display:flex;gap:24px;border:0;margin:0 0 5px;padding:0}
+.hero-stats div{border-left:1px solid var(--line);padding-left:22px}
+.hero-stats strong{font-size:36px;font-weight:400}
+.hero-stats span{color:#6b7265;font-size:10px;letter-spacing:.02em;margin-top:9px}
+main{max-width:1280px;padding:0 40px 64px}
+.search-panel{margin:0;padding:22px 26px;border:1px solid var(--line);border-radius:3px;box-shadow:none;background:#eeeee4;scroll-margin-top:20px}
+.search-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;color:#596750;font-size:11px;letter-spacing:.1em}
+.search-heading span+span{font-size:12px;letter-spacing:.06em}
+.search-box{border-radius:2px;min-height:50px;background:var(--paper)}
+.search-icon{font-size:28px}
+.search-box:focus-within{outline:2px solid var(--green);outline-offset:2px}
+.search-button{border-radius:2px;box-shadow:none;font-size:14px}
+.filters{gap:12px;margin-top:14px}
+.filters select{border:0;border-bottom:1px solid #bcc3b1;border-radius:0;background-color:transparent;font-size:12px;padding-left:2px}
+.genre-legend{gap:8px;margin-top:16px}
+.legend-chip{padding:5px 11px;border:1px solid #cdd2c2;background:transparent;color:#4b5949;border-radius:2px}
+.legend-icon{border-radius:0;background:var(--accent);font-size:10px;width:18px;height:18px}
+.list-head{margin:36px 0 22px;align-items:center}
+.section-kicker{font-size:10px;letter-spacing:.18em;color:#838674}
+.list-head h2{font-size:28px;letter-spacing:.03em}
+.list-actions{font-size:12px}
+.list-actions button{font-weight:400;text-decoration:underline;text-underline-offset:4px}
+.recipe-grid{gap:20px;grid-template-columns:repeat(3,minmax(0,1fr))}
+.card{border-radius:3px;padding:24px;min-height:326px;box-shadow:none;border:1px solid var(--line);transition:transform .2s,border-color .2s,box-shadow .2s}
+.card::before{height:2px;opacity:.7}
+.card::after{display:none}
+.card:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 12px 24px #203a310a}
+.card-top{margin-bottom:18px;gap:8px}
+.recipe-number{font-family:Georgia,serif;font-size:24px;line-height:1;color:#8b8e7e;margin-right:auto}
+.category-badge{background:transparent;color:#66705e;font-size:11px;padding:0 10px;border-right:1px solid var(--line);border-radius:0}
+.time-badge{font-size:11px}
+.card .genre-pill{border:0;padding:0;background:none;gap:6px;font-size:10px;color:var(--accent);backdrop-filter:none}
+.card .genre-icon{border-radius:1px;width:19px;height:19px;font-size:10px}
+.card h3{font-size:23px;line-height:1.6;margin:10px 0 12px;letter-spacing:.01em}
+.card-summary{color:#73766c;font-size:12px;line-height:1.85}
+.tags{margin:16px 0 20px;gap:7px}
+.tag{background:transparent;border:1px solid #e1dfd4;border-radius:2px;padding:2px 6px;color:#73766c}
+.card-footer{border-top:1px solid var(--line);padding-top:14px;align-items:center}
+.genre-label{color:var(--ink);font-size:11px}
+.genre-label span{margin-left:6px}
+.rating-line{font-size:15px}
+.rating-line.unrated{color:#73766c;font-size:11px}
+.empty-state{grid-column:1/-1;padding:48px 16px;text-align:center;border-block:1px solid var(--line);color:var(--muted)}
+dialog{border-radius:4px}
+.detail-header{border-bottom:1px solid var(--green)}
+.detail h2{letter-spacing:.02em}
+.detail h3{font-family:Georgia,"Yu Mincho",serif;font-size:20px}
+.detail h3::before{height:1px;width:20px;border-radius:0}
+.detail .genre-pill{border-radius:2px}
+.ingredients-list li{border-color:var(--line)}
+.userbox{background:#e9eddf;color:var(--ink);border:1px solid #d4ddc8;border-radius:3px;padding:24px}
+.userbox h3{color:var(--ink)}
+.userbox h3::before{background:var(--ink)}
+.stars button{color:var(--ink);border-color:#b8c6a9;border-radius:2px;background:transparent;min-height:44px}
+.stars button.active{background:var(--green);color:white;border-color:var(--green)}
+textarea{border:1px solid #bdc9b1;background:var(--paper);border-radius:2px;min-height:140px}
+textarea:focus{outline:2px solid var(--green);outline-offset:2px}
+.save-note{border-radius:2px;background:var(--green);color:white;padding:11px 20px}
+.cooking-mode-button{border-radius:2px;font-size:13px}
+.site-footer{max-width:1200px;margin:auto;border-top:1px solid var(--line);padding:24px 20px 36px;color:#65715e;font-size:10px;letter-spacing:.1em}
+.site-footer span{padding:0 10px;color:#a2a48f}
+@media(min-width:901px){.card:nth-child(6n+2){background:#f0f1e8}}
+@media(max-width:1050px){
+.hero-inner{grid-template-columns:1fr;gap:24px}.hero-stats{gap:32px}.hero-stats div{padding-left:18px}.hero-stats strong{font-size:28px}
+.recipe-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:620px){
+.hero-inner{padding:18px 20px 24px;gap:22px}.brand-row{padding-bottom:16px;gap:8px}.brand-name{font-size:9px;letter-spacing:.1em}.archive-link{font-size:10px}.archive-link span{margin-left:4px}
+.hero h1{font-size:clamp(36px,9vw,52px)}.eyebrow{font-size:9px;margin-bottom:12px}.lead{font-size:12px;margin-top:14px}
+.hero-stats{width:100%;gap:0;justify-content:space-between}.hero-stats div{padding-left:12px}.hero-stats strong{font-size:26px}.hero-stats span{font-size:9px}
+main{padding:0 16px 40px}.search-panel{padding:16px;border-radius:2px}.search-heading{gap:8px;letter-spacing:.03em}.search-heading span:first-child{font-size:8px}.search-heading span+span{font-size:10px}
+.search-row{grid-template-columns:minmax(0,1fr) auto;gap:6px}.search-box{padding:0 8px;gap:4px}.search-box input{font-size:16px;min-width:0}.search-box input::placeholder{font-size:12px}.search-button{min-width:54px;width:auto;padding:0 10px}
+.filters{gap:8px 12px}.filters select{font-size:12px}.legend-chip{padding:5px 8px;font-size:11px}.legend-icon{display:none}
+.list-head{margin:28px 0 16px;gap:8px}.list-head h2{font-size:21px}.list-actions{font-size:10px;gap:4px}.section-kicker{font-size:9px}
+.recipe-grid{grid-template-columns:minmax(0,1fr);gap:14px}.card{padding:20px;min-height:0}.card h3{font-size:23px}.card-top{margin-bottom:12px}.card-summary{font-size:13px}
+.detail h2{font-size:28px}.detail-genre-row{gap:8px}.userbox{padding:18px}.site-footer{margin:0 16px;font-size:9px;letter-spacing:.03em}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.card,.legend-chip{transition:none}.card:hover,.legend-chip:hover{transform:none}}
+
+/* Match shared notes, trash and history controls to the journal. */
+.userbox .save-note,.userbox .copy-improvement-button,.trash-item button{background:var(--green);color:#fff;border:1px solid var(--green);border-radius:2px}
+.userbox .improve-recipe-button{background:var(--paper);color:var(--green);border:1px solid var(--green);border-radius:2px}
+.userbox .delete-recipe-button{background:#fff4ef;color:#943f2c;border:1px solid #943f2c;border-radius:2px}
+#trashButton{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:2px;padding:7px 10px;font-size:11px;font-weight:400;text-decoration:none}
+.improvement-card,.improvement-prompt,.trash-item,.version-list-item,.version-feedback{border-radius:2px}
+.version-history-button,.version-back-button,.version-badge{border-radius:2px}
+.list-actions{flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:620px){.list-actions{max-width:105px}#trashButton{padding:5px 8px;font-size:10px}}
