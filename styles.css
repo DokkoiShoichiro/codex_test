@@ -349,3 +349,79 @@ body:has(#recipeDialog[open]){overflow:hidden}
 #trashButton:disabled {
   opacity: .6;
 }
+
+
+.version-badge{
+  display:inline-flex;
+  align-items:center;
+  border-radius:999px;
+  padding:3px 8px;
+  background:var(--accent-soft);
+  color:var(--accent);
+  font-weight:800;
+}
+.version-history-button,
+.version-back-button{
+  margin-top:14px;
+  border:1px solid var(--accent);
+  background:#fff;
+  color:var(--accent);
+  border-radius:999px;
+  padding:9px 13px;
+  font-weight:800;
+  -webkit-appearance:none;
+  appearance:none;
+}
+.version-history-panel{
+  margin-top:12px;
+}
+.version-list{
+  display:grid;
+  gap:8px;
+}
+.version-list-item{
+  width:100%;
+  display:grid;
+  grid-template-columns:auto auto;
+  gap:4px 12px;
+  text-align:left;
+  border:1px solid #dedbd1;
+  background:#fff;
+  color:var(--ink);
+  border-radius:12px;
+  padding:12px 14px;
+  -webkit-appearance:none;
+  appearance:none;
+}
+.version-list-item>span:nth-child(2){
+  justify-self:end;
+  color:var(--accent);
+  font-weight:700;
+}
+.version-list-summary{
+  grid-column:1/-1;
+  color:var(--muted);
+  font-size:12px;
+}
+.version-list-item small{
+  color:var(--muted);
+  font-weight:400;
+}
+.version-feedback{
+  margin-top:28px;
+  padding:18px;
+  border-radius:14px;
+  background:#f4f1e9;
+}
+.version-feedback h3{
+  margin-top:0;
+}
+.historical-version::before{
+  content:"過去バージョン";
+  display:block;
+  margin-bottom:10px;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.12em;
+  color:var(--muted);
+}
