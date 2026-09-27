@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>うちのレシピ帳</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="site-header">
+  <div><h1>うちのレシピ帳</h1><p>検索・評価・メモができる家庭料理データベース</p></div>
+</header>
+<main>
+  <section class="controls">
+    <input id="q" type="search" placeholder="料理名・食材・タグで検索">
+    <select id="genre"><option value="">ジャンル：すべて</option></select>
+    <select id="category"><option value="">料理区分：すべて</option></select>
+    <select id="minutes">
+      <option value="">調理時間：すべて</option><option value="10">10分以内</option>
+      <option value="20">20分以内</option><option value="30">30分以内</option><option value="60">60分以内</option>
+    </select>
+    <select id="rating">
+      <option value="">評価：すべて</option><option value="8">★8以上</option>
+      <option value="9">★9以上</option><option value="10">★10のみ</option><option value="unrated">未評価</option>
+    </select>
+    <select id="sort"><option value="title">料理名順</option><option value="rating">評価順</option><option value="minutes">調理時間順</option></select>
+  </section>
+  <section class="statusbar"><span id="count"></span><button id="clearFilters" type="button">絞り込み解除</button></section>
+  <section id="recipeList" class="recipe-grid"></section>
+</main>
+<dialog id="recipeDialog">
+  <button class="dialog-close" id="closeDialog" aria-label="閉じる">×</button>
+  <div id="dialogContent"></div>
+</dialog>
+<script src="app.js"></script>
+</body>
+</html>
