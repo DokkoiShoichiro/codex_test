@@ -287,7 +287,7 @@ document.addEventListener('visibilitychange',()=>{
   if(cookingModeActive && document.visibilityState==='visible') reacquireWakeLock();
 });
 
-fetch('recipes.json')
+fetch('recipes.json?v=20260927-3', {cache:'no-store'})
   .then(r=>r.json())
   .then(data=>{
     recipes=data;
