@@ -389,22 +389,29 @@ document.addEventListener('visibilitychange',()=>{
   if(cookingModeActive && document.visibilityState==='visible') reacquireWakeLock();
 });
 
+async function syncSharedData(){
+  const cloudLoaded=await loadSharedRecipeData();
+  if(!cloudLoaded) return;
+
+  render();
+
+  await migrateLocalDataIfNeeded();
+  render();
+}
+
 async function initialize(){
   try{
     const response=await fetch('recipes.json?v=20260927-3',{cache:'no-store'});
     if(!response.ok) throw new Error('recipes.json: '+response.status);
     recipes=await response.json();
 
-    const cloudLoaded=await loadSharedRecipeData();
-    if(cloudLoaded){
-      await migrateLocalDataIfNeeded();
-      await loadSharedRecipeData();
-    }
-
     fillSelect(els.genre,recipes.map(r=>r.genre));
     fillSelect(els.category,recipes.map(r=>r.category));
     renderLegend();
+
+    // まずレシピ本体を即表示。共有データは後から反映する。
     render();
+    syncSharedData();
   }catch(err){
     els.count.textContent='レシピデータの読み込みに失敗しました。';
     console.error(err);
