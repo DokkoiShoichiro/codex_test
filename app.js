@@ -222,23 +222,59 @@ function render(){
 function section(title,body,cls=''){
   return '<section class="detail-section '+cls+'"><h3>'+title+'</h3>'+body+'</section>';
 }
+function buildImprovementPrompt(r){
+  const rating=getRating(r.id);
+  const note=getNote(r.id);
+  return [
+    'このレシピを改善してください。',
+    '',
+    '【改善方針】',
+    '現在の評価とメモを最重要情報として、家庭で作りやすい範囲で改良してください。',
+    '辛味を強くせず、味はぼやけないようにしてください。',
+    '分量・切り方・下処理を明記してください。',
+    '変更した点と、その理由も最後にまとめてください。',
+    '',
+    '【料理名】',
+    r.title,
+    '',
+    '【現在の評価】',
+    '★ '+rating+' / 10',
+    '',
+    '【メモ】',
+    note || 'なし',
+    '',
+    '【材料】',
+    ...r.ingredients.map(x=>'・'+x),
+    '',
+    '【下準備】',
+    ...r.prep.map((x,i)=>(i+1)+'. '+x),
+    '',
+    '【調理手順】',
+    ...r.steps.map((x,i)=>(i+1)+'. '+x),
+    '',
+    '【失敗しないポイント】',
+    ...r.points.map(x=>'・'+x)
+  ].join('\n');
+}
+
 function buildImprovementSummary(r){
   const rating=getRating(r.id);
   const note=getNote(r.id);
+  const prompt=buildImprovementPrompt(r);
   return (
     '<div class="improvement-card">'+
-      '<p class="improvement-kicker">IMPROVEMENT DRAFT</p>'+
-      '<h3>'+escapeHtml(r.title)+' の改善材料</h3>'+
+      '<p class="improvement-kicker">IMPROVEMENT PROMPT</p>'+
+      '<h3>'+escapeHtml(r.title)+' の改善依頼</h3>'+
       '<div class="improvement-meta">'+
         '<span>現在の評価：★ '+rating+' / 10</span>'+
         '<span>調理時間：約 '+r.minutes+' 分</span>'+
       '</div>'+
       '<section><h4>メモ</h4><p>'+(note?escapeHtml(note):'メモはまだありません。')+'</p></section>'+
-      '<section><h4>材料</h4><ul>'+r.ingredients.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul></section>'+
-      '<section><h4>下準備</h4><ol>'+r.prep.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ol></section>'+
-      '<section><h4>調理手順</h4><ol>'+r.steps.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ol></section>'+
-      '<section><h4>失敗しないポイント</h4><ul>'+r.points.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul></section>'+
-      '<p class="improvement-note">次の段階で、この内容と評価・メモをAIに渡して改善案を生成できるようにします。</p>'+
+      '<textarea id="improvementPrompt" class="improvement-prompt" readonly>'+escapeHtml(prompt)+'</textarea>'+
+      '<div class="improvement-actions">'+
+        '<button id="copyImprovementPrompt" class="copy-improvement-button" type="button">ChatGPT用の改善依頼をコピー</button>'+
+      '</div>'+
+      '<p class="improvement-note">コピーした内容をこのChatGPTに貼れば、改善版レシピを作れます。</p>'+
     '</div>'
   );
 }
@@ -328,6 +364,21 @@ function openRecipe(r){
       const panel=els.content.querySelector('#improvementPanel');
       panel.innerHTML=buildImprovementSummary(r);
       panel.hidden=false;
+
+      const copyButton=panel.querySelector('#copyImprovementPrompt');
+      const promptArea=panel.querySelector('#improvementPrompt');
+      copyButton.addEventListener('click',async()=>{
+        try{
+          await navigator.clipboard.writeText(promptArea.value);
+          copyButton.textContent='コピーしました';
+          setTimeout(()=>copyButton.textContent='ChatGPT用の改善依頼をコピー',1200);
+        }catch(err){
+          promptArea.focus();
+          promptArea.select();
+          copyButton.textContent='選択しました。コピーしてください';
+        }
+      });
+
       panel.scrollIntoView({behavior:'smooth',block:'start'});
     });
   }
