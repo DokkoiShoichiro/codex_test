@@ -42,7 +42,8 @@ const els={
   ratedRecipes:document.querySelector('#ratedRecipes'),
   topRated:document.querySelector('#topRated'),
   genreLegend:document.querySelector('#genreLegend'),
-  searchButton:document.querySelector('#searchButton')
+  searchButton:document.querySelector('#searchButton'),
+  trashButton:document.querySelector('#trashButton')
 };
 
 const GENRE_META={
@@ -63,14 +64,15 @@ function getNote(id){return sharedRecipeData[id]?.note||''}
 async function loadSharedRecipeData(){
   try{
     const data=await supabaseRequest(
-      SUPABASE_TABLE+'?select=recipe_id,rating,note,updated_at'
+      SUPABASE_TABLE+'?select=recipe_id,rating,note,deleted,updated_at'
     );
 
     sharedRecipeData={};
     (data||[]).forEach(row=>{
       sharedRecipeData[row.recipe_id]={
         rating:Number(row.rating||0),
-        note:row.note||''
+        note:row.note||'',
+        deleted:Boolean(row.deleted)
       };
     });
     return true;
@@ -81,10 +83,11 @@ async function loadSharedRecipeData(){
 }
 
 async function saveSharedRecipeData(id,{rating,note}){
-  const current=sharedRecipeData[id]||{rating:0,note:''};
+  const current=sharedRecipeData[id]||{rating:0,note:'',deleted:false};
   const next={
     rating:rating===undefined?current.rating:Number(rating||0),
-    note:note===undefined?current.note:String(note||'')
+    note:note===undefined?current.note:String(note||''),
+    deleted:current.deleted||false
   };
 
   await supabaseRequest(
@@ -98,6 +101,7 @@ async function saveSharedRecipeData(id,{rating,note}){
         recipe_id:id,
         rating:next.rating||null,
         note:next.note,
+        deleted:next.deleted,
         updated_at:new Date().toISOString()
       })
     }
@@ -120,6 +124,32 @@ async function migrateLocalDataIfNeeded(){
       console.error('Local data migration failed:',r.id,err);
     }
   }
+}
+
+async function setRecipeDeleted(id,deleted){
+  const current=sharedRecipeData[id]||{rating:0,note:'',deleted:false};
+  const next={...current,deleted:Boolean(deleted)};
+
+  await supabaseRequest(
+    SUPABASE_TABLE+'?on_conflict=recipe_id',
+    {
+      method:'POST',
+      headers:{Prefer:'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify({
+        recipe_id:id,
+        rating:next.rating||null,
+        note:next.note||'',
+        deleted:next.deleted,
+        updated_at:new Date().toISOString()
+      })
+    }
+  );
+
+  sharedRecipeData[id]=next;
+}
+
+function isDeleted(id){
+  return Boolean(sharedRecipeData[id]?.deleted);
 }
 
 function fillSelect(el,values){
@@ -172,12 +202,12 @@ function matches(r){
 }
 function renderStats(){
   const ratings=recipes.map(r=>getRating(r.id)).filter(Boolean);
-  els.totalRecipes.textContent=recipes.length;
+  els.totalRecipes.textContent=recipes.filter(r=>!isDeleted(r.id)).length;
   els.ratedRecipes.textContent=ratings.length;
   els.topRated.textContent=ratings.length?Math.max(...ratings):'–';
 }
 function render(){
-  let list=recipes.filter(matches);
+  let list=recipes.filter(r=>!isDeleted(r.id)).filter(matches);
   if(els.sort.value==='rating'){
     list.sort((a,b)=>getRating(b.id)-getRating(a.id)||a.title.localeCompare(b.title,'ja'));
   }else if(els.sort.value==='minutes'){
@@ -186,7 +216,8 @@ function render(){
     list.sort((a,b)=>a.title.localeCompare(b.title,'ja'));
   }
 
-  els.count.textContent=list.length+' / '+recipes.length+' 件';
+  const activeCount=recipes.filter(r=>!isDeleted(r.id)).length;
+  els.count.textContent=list.length+' / '+activeCount+' 件';
   els.list.innerHTML='';
 
   list.forEach(r=>{
@@ -315,6 +346,7 @@ function openRecipe(r){
         '<div class="stars">'+Array.from({length:10},(_,i)=>{const n=i+1;return '<button data-rating="'+n+'" class="'+(rating===n?'active':'')+'">★'+n+'</button>'}).join('')+'</div>'+
         '<textarea id="memoArea" placeholder="次回変えたい点、家族の反応、分量調整など">'+escapeHtml(note)+'</textarea>'+
         '<button class="save-note" id="saveNote">メモを保存</button>'+
+        '<button class="delete-recipe-button" id="deleteRecipe" type="button">レシピを削除</button>'+
         (rating>0 && rating<=7
           ? '<button class="improve-recipe-button" id="improveRecipe">このレシピを改善する</button>'
           : '')+
@@ -358,6 +390,24 @@ function openRecipe(r){
       alert('メモを保存できませんでした。\n'+err.message);
     }
   });
+  const deleteButton=els.content.querySelector('#deleteRecipe');
+  if(deleteButton){
+    deleteButton.addEventListener('click',async()=>{
+      const ok=confirm('「'+r.title+'」をゴミ箱に移動しますか？');
+      if(!ok) return;
+      deleteButton.disabled=true;
+      try{
+        await setRecipeDeleted(r.id,true);
+        els.dialog.close();
+        render();
+      }catch(err){
+        console.error(err);
+        alert('削除に失敗しました。\n'+err.message);
+        deleteButton.disabled=false;
+      }
+    });
+  }
+
   const improveButton=els.content.querySelector('#improveRecipe');
   if(improveButton){
     improveButton.addEventListener('click',()=>{
@@ -385,6 +435,45 @@ function openRecipe(r){
 
   if(!els.dialog.open){els.dialog.showModal();els.dialog.scrollTop=0;}
 }
+
+function openTrash(){
+  const deleted=recipes.filter(r=>isDeleted(r.id));
+
+  els.content.innerHTML=
+    '<article class="detail">'+
+      '<header class="detail-header"><p class="detail-kicker">TRASH</p><h2>ゴミ箱</h2></header>'+
+      '<div class="trash-list">'+
+        (deleted.length
+          ? deleted.map(r=>
+              '<div class="trash-item">'+
+                '<div><strong>'+escapeHtml(r.title)+'</strong><p>'+escapeHtml(r.summary||'')+'</p></div>'+
+                '<button type="button" data-restore="'+escapeHtml(r.id)+'">復元</button>'+
+              '</div>'
+            ).join('')
+          : '<p>削除したレシピはありません。</p>')+
+      '</div>'+
+    '</article>';
+
+  els.content.querySelectorAll('[data-restore]').forEach(btn=>{
+    btn.addEventListener('click',async()=>{
+      btn.disabled=true;
+      try{
+        await setRecipeDeleted(btn.dataset.restore,false);
+        openTrash();
+        render();
+      }catch(err){
+        console.error(err);
+        alert('復元に失敗しました。\n'+err.message);
+        btn.disabled=false;
+      }
+    });
+  });
+
+  if(!els.dialog.open) els.dialog.showModal();
+  els.dialog.scrollTop=0;
+}
+
+els.trashButton.addEventListener('click',openTrash);
 
 els.q.addEventListener('input',render);
 els.q.addEventListener('keydown',e=>{
