@@ -14,9 +14,20 @@ const els={
   close:document.querySelector('#closeDialog'),
   totalRecipes:document.querySelector('#totalRecipes'),
   ratedRecipes:document.querySelector('#ratedRecipes'),
-  topRated:document.querySelector('#topRated')
+  topRated:document.querySelector('#topRated'),
+  genreLegend:document.querySelector('#genreLegend')
 };
 
+const GENRE_META={
+  '和食':{icon:'和', className:'genre-wa', label:'和食'},
+  '洋食':{icon:'洋', className:'genre-yo', label:'洋食'},
+  '中華':{icon:'中', className:'genre-chu', label:'中華'},
+  '沖縄風':{icon:'沖', className:'genre-oki', label:'沖縄風'}
+};
+
+function getGenreMeta(genre){
+  return GENRE_META[genre] || {icon:'他', className:'genre-other', label:genre||'その他'};
+}
 function keyRating(id){return 'recipe-rating:'+id}
 function keyNote(id){return 'recipe-note:'+id}
 function getRating(id){return Number(localStorage.getItem(keyRating(id))||0)}
@@ -26,6 +37,17 @@ function fillSelect(el,values){
   [...new Set(values)].sort().forEach(v=>{
     const o=document.createElement('option');
     o.value=v;o.textContent=v;el.appendChild(o);
+  });
+}
+function renderLegend(){
+  const usedGenres=[...new Set(recipes.map(r=>r.genre))];
+  els.genreLegend.innerHTML='';
+  usedGenres.forEach(genre=>{
+    const meta=getGenreMeta(genre);
+    const chip=document.createElement('span');
+    chip.className='legend-chip';
+    chip.innerHTML='<span class="legend-icon '+meta.className+'">'+meta.icon+'</span><span>'+escapeHtml(meta.label)+'</span>';
+    els.genreLegend.appendChild(chip);
   });
 }
 function normalize(s){return String(s||'').toLowerCase().replace(/\s+/g,'')}
@@ -73,14 +95,16 @@ function render(){
 
   list.forEach(r=>{
     const rating=getRating(r.id);
+    const meta=getGenreMeta(r.genre);
     const card=document.createElement('article');
-    card.className='card';
+    card.className='card '+meta.className;
     card.tabIndex=0;
     card.innerHTML=
       '<div class="card-top">'+
         '<span class="category-badge">'+escapeHtml(r.category)+'</span>'+
         '<span class="time-badge">約 '+r.minutes+' 分</span>'+
       '</div>'+
+      '<span class="genre-pill"><span class="genre-icon">'+meta.icon+'</span>'+escapeHtml(meta.label)+'</span>'+
       '<h3>'+escapeHtml(r.title)+'</h3>'+
       '<p class="card-summary">'+escapeHtml(r.summary)+'</p>'+
       '<div class="tags">'+
@@ -104,11 +128,15 @@ function section(title,body,cls=''){
 }
 function openRecipe(r){
   const rating=getRating(r.id),note=getNote(r.id);
+  const meta=getGenreMeta(r.genre);
 
   els.content.innerHTML=
-    '<article class="detail">'+
+    '<article class="detail '+meta.className+'">'+
       '<header class="detail-header">'+
-        '<p class="detail-kicker">'+escapeHtml(r.genre).toUpperCase()+' / '+escapeHtml(r.category).toUpperCase()+'</p>'+
+        '<div class="detail-genre-row">'+
+          '<span class="genre-pill"><span class="genre-icon">'+meta.icon+'</span>'+escapeHtml(meta.label)+'</span>'+
+          '<p class="detail-kicker">'+escapeHtml(r.category).toUpperCase()+'</p>'+
+        '</div>'+
         '<h2>'+escapeHtml(r.title)+'</h2>'+
         '<div class="detail-meta">'+
           '<span>約 '+r.minutes+' 分</span>'+
@@ -169,6 +197,7 @@ fetch('recipes.json')
     recipes=data;
     fillSelect(els.genre,recipes.map(r=>r.genre));
     fillSelect(els.category,recipes.map(r=>r.category));
+    renderLegend();
     render();
   })
   .catch(err=>{
