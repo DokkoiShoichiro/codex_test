@@ -276,3 +276,76 @@ body:has(#recipeDialog[open]){overflow:hidden}
   font-weight:700;
   cursor:pointer;
 }
+
+
+/* --- Mobile-safe action button contrast --- */
+.userbox .save-note,
+.userbox .delete-recipe-button,
+.userbox .improve-recipe-button,
+.userbox .copy-improvement-button,
+.trash-item button,
+#trashButton {
+  -webkit-appearance: none;
+  appearance: none;
+  font: inherit;
+  text-decoration: none;
+  -webkit-text-fill-color: currentColor;
+}
+
+.userbox .save-note {
+  background: #f6f2ee;
+  color: #7f4d38;
+  border: none;
+  border-radius: 14px;
+  padding: 14px 22px;
+  font-weight: 800;
+}
+
+.userbox .improve-recipe-button {
+  margin-top: 12px;
+  width: 100%;
+  background: #f6f2ee;
+  color: #7f4d38;
+  border: 2px solid #7f4d38;
+  border-radius: 14px;
+  padding: 14px 18px;
+  font-weight: 800;
+}
+
+.userbox .delete-recipe-button {
+  margin-top: 10px;
+  width: 100%;
+  background: #fff4f1;
+  color: #9b3f2a;
+  border: 2px solid #9b3f2a;
+  border-radius: 14px;
+  padding: 14px 18px;
+  font-weight: 800;
+}
+
+.userbox .copy-improvement-button,
+.trash-item button,
+#trashButton {
+  background: #f6f2ee;
+  color: #7f4d38;
+  border: 2px solid #7f4d38;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-weight: 800;
+}
+
+.userbox .save-note:active,
+.userbox .delete-recipe-button:active,
+.userbox .improve-recipe-button:active,
+.userbox .copy-improvement-button:active,
+.trash-item button:active,
+#trashButton:active {
+  transform: scale(.99);
+  opacity: .92;
+}
+
+.userbox button:disabled,
+.trash-item button:disabled,
+#trashButton:disabled {
+  opacity: .6;
+}
