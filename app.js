@@ -222,6 +222,27 @@ function render(){
 function section(title,body,cls=''){
   return '<section class="detail-section '+cls+'"><h3>'+title+'</h3>'+body+'</section>';
 }
+function buildImprovementSummary(r){
+  const rating=getRating(r.id);
+  const note=getNote(r.id);
+  return (
+    '<div class="improvement-card">'+
+      '<p class="improvement-kicker">IMPROVEMENT DRAFT</p>'+
+      '<h3>'+escapeHtml(r.title)+' の改善材料</h3>'+
+      '<div class="improvement-meta">'+
+        '<span>現在の評価：★ '+rating+' / 10</span>'+
+        '<span>調理時間：約 '+r.minutes+' 分</span>'+
+      '</div>'+
+      '<section><h4>メモ</h4><p>'+(note?escapeHtml(note):'メモはまだありません。')+'</p></section>'+
+      '<section><h4>材料</h4><ul>'+r.ingredients.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul></section>'+
+      '<section><h4>下準備</h4><ol>'+r.prep.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ol></section>'+
+      '<section><h4>調理手順</h4><ol>'+r.steps.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ol></section>'+
+      '<section><h4>失敗しないポイント</h4><ul>'+r.points.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul></section>'+
+      '<p class="improvement-note">次の段階で、この内容と評価・メモをAIに渡して改善案を生成できるようにします。</p>'+
+    '</div>'
+  );
+}
+
 function openRecipe(r){
   const rating=getRating(r.id),note=getNote(r.id);
   const meta=getGenreMeta(r.genre);
@@ -258,6 +279,10 @@ function openRecipe(r){
         '<div class="stars">'+Array.from({length:10},(_,i)=>{const n=i+1;return '<button data-rating="'+n+'" class="'+(rating===n?'active':'')+'">★'+n+'</button>'}).join('')+'</div>'+
         '<textarea id="memoArea" placeholder="次回変えたい点、家族の反応、分量調整など">'+escapeHtml(note)+'</textarea>'+
         '<button class="save-note" id="saveNote">メモを保存</button>'+
+        (rating>0 && rating<=7
+          ? '<button class="improve-recipe-button" id="improveRecipe">このレシピを改善する</button>'
+          : '')+
+        '<div id="improvementPanel" class="improvement-panel" hidden></div>'+
       '</div>'+
     '</article>';
 
@@ -297,6 +322,16 @@ function openRecipe(r){
       alert('メモを保存できませんでした。\n'+err.message);
     }
   });
+  const improveButton=els.content.querySelector('#improveRecipe');
+  if(improveButton){
+    improveButton.addEventListener('click',()=>{
+      const panel=els.content.querySelector('#improvementPanel');
+      panel.innerHTML=buildImprovementSummary(r);
+      panel.hidden=false;
+      panel.scrollIntoView({behavior:'smooth',block:'start'});
+    });
+  }
+
   if(!els.dialog.open){els.dialog.showModal();els.dialog.scrollTop=0;}
 }
 
