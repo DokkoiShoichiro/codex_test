@@ -1,6 +1,11 @@
 let recipes=[];
 let wakeLock=null;
 let cookingModeActive=false;
+
+const SUPABASE_URL='https://rddsbyawyhmihigbhbtj.supabase.co';
+const SUPABASE_KEY='sb_publishable_Cj1yZyLDkZfIVb-LrUR7bw_VPe9VMJn';
+const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let sharedRecipeData={};
 const els={
   q:document.querySelector('#q'),
   genre:document.querySelector('#genre'),
@@ -33,8 +38,68 @@ function getGenreMeta(genre){
 }
 function keyRating(id){return 'recipe-rating:'+id}
 function keyNote(id){return 'recipe-note:'+id}
-function getRating(id){return Number(localStorage.getItem(keyRating(id))||0)}
-function getNote(id){return localStorage.getItem(keyNote(id))||''}
+function getRating(id){return Number(sharedRecipeData[id]?.rating||0)}
+function getNote(id){return sharedRecipeData[id]?.note||''}
+
+async function loadSharedRecipeData(){
+  const {data,error}=await db
+    .from('recipe_notes')
+    .select('recipe_id,rating,note,updated_at');
+
+  if(error){
+    console.error('Supabase read error:',error);
+    return false;
+  }
+
+  sharedRecipeData={};
+  (data||[]).forEach(row=>{
+    sharedRecipeData[row.recipe_id]={
+      rating:Number(row.rating||0),
+      note:row.note||''
+    };
+  });
+  return true;
+}
+
+async function saveSharedRecipeData(id,{rating,note}){
+  const current=sharedRecipeData[id]||{rating:0,note:''};
+  const next={
+    rating:rating===undefined?current.rating:Number(rating||0),
+    note:note===undefined?current.note:String(note||'')
+  };
+
+  const {error}=await db
+    .from('recipe_notes')
+    .upsert({
+      recipe_id:id,
+      rating:next.rating||null,
+      note:next.note,
+      updated_at:new Date().toISOString()
+    },{onConflict:'recipe_id'});
+
+  if(error){
+    console.error('Supabase save error:',error);
+    throw error;
+  }
+
+  sharedRecipeData[id]=next;
+}
+
+async function migrateLocalDataIfNeeded(){
+  for(const r of recipes){
+    if(sharedRecipeData[r.id]) continue;
+
+    const localRating=Number(localStorage.getItem(keyRating(r.id))||0);
+    const localNote=localStorage.getItem(keyNote(r.id))||'';
+    if(!localRating&&!localNote) continue;
+
+    try{
+      await saveSharedRecipeData(r.id,{rating:localRating,note:localNote});
+    }catch(err){
+      console.error('Local data migration failed:',r.id,err);
+    }
+  }
+}
 
 function fillSelect(el,values){
   [...new Set(values)].sort().forEach(v=>{
@@ -178,22 +243,35 @@ function openRecipe(r){
   setupCookingModeControls();
   els.content.querySelectorAll('[data-rating]').forEach(btn=>{
     btn.setAttribute('aria-pressed',String(Number(btn.dataset.rating)===rating));
-    btn.addEventListener('click',()=>{
-      localStorage.setItem(keyRating(r.id),btn.dataset.rating);
-      els.content.querySelectorAll('[data-rating]').forEach(option=>{
-        const selected=option.dataset.rating===btn.dataset.rating;
-        option.classList.toggle('active',selected);
-        option.setAttribute('aria-pressed',String(selected));
-      });
-      els.content.querySelector('#detailRating').textContent='★ '+btn.dataset.rating+' / 10';
-      render();
+    btn.addEventListener('click',async()=>{
+      const newRating=Number(btn.dataset.rating);
+      try{
+        await saveSharedRecipeData(r.id,{rating:newRating});
+        els.content.querySelectorAll('[data-rating]').forEach(option=>{
+          const selected=Number(option.dataset.rating)===newRating;
+          option.classList.toggle('active',selected);
+          option.setAttribute('aria-pressed',String(selected));
+        });
+        els.content.querySelector('#detailRating').textContent='★ '+newRating+' / 10';
+        render();
+      }catch(err){
+        alert('評価を保存できませんでした。通信状態を確認してください。');
+      }
     });
   });
-  els.content.querySelector('#saveNote').addEventListener('click',()=>{
-    localStorage.setItem(keyNote(r.id),els.content.querySelector('#memoArea').value);
+  els.content.querySelector('#saveNote').addEventListener('click',async()=>{
     const b=els.content.querySelector('#saveNote');
-    b.textContent='保存しました';
-    setTimeout(()=>b.textContent='メモを保存',900);
+    const note=els.content.querySelector('#memoArea').value;
+    b.disabled=true;
+    b.textContent='保存中…';
+    try{
+      await saveSharedRecipeData(r.id,{note});
+      b.textContent='保存しました';
+      setTimeout(()=>{b.textContent='メモを保存';b.disabled=false;},900);
+    }catch(err){
+      b.textContent='保存に失敗しました';
+      b.disabled=false;
+    }
   });
   if(!els.dialog.open){els.dialog.showModal();els.dialog.scrollTop=0;}
 }
@@ -287,16 +365,26 @@ document.addEventListener('visibilitychange',()=>{
   if(cookingModeActive && document.visibilityState==='visible') reacquireWakeLock();
 });
 
-fetch('recipes.json?v=20260927-3', {cache:'no-store'})
-  .then(r=>r.json())
-  .then(data=>{
-    recipes=data;
+async function initialize(){
+  try{
+    const response=await fetch('recipes.json?v=20260927-3',{cache:'no-store'});
+    if(!response.ok) throw new Error('recipes.json: '+response.status);
+    recipes=await response.json();
+
+    const cloudLoaded=await loadSharedRecipeData();
+    if(cloudLoaded){
+      await migrateLocalDataIfNeeded();
+      await loadSharedRecipeData();
+    }
+
     fillSelect(els.genre,recipes.map(r=>r.genre));
     fillSelect(els.category,recipes.map(r=>r.category));
     renderLegend();
     render();
-  })
-  .catch(err=>{
-    els.count.textContent='recipes.json の読み込みに失敗しました。';
+  }catch(err){
+    els.count.textContent='レシピデータの読み込みに失敗しました。';
     console.error(err);
-  });
+  }
+}
+
+initialize();
