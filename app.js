@@ -345,10 +345,10 @@ function openRecipe(r){
         '<h3>自分の評価・メモ</h3>'+
         '<div class="stars">'+Array.from({length:10},(_,i)=>{const n=i+1;return '<button data-rating="'+n+'" class="'+(rating===n?'active':'')+'">★'+n+'</button>'}).join('')+'</div>'+
         '<textarea id="memoArea" placeholder="次回変えたい点、家族の反応、分量調整など">'+escapeHtml(note)+'</textarea>'+
-        '<button class="save-note" id="saveNote">メモを保存</button>'+
-        '<button class="delete-recipe-button" id="deleteRecipe" type="button">レシピを削除</button>'+
+        '<button class="save-note" id="saveNote" style="background:#f6f2ee;color:#7f4d38;border:none;border-radius:14px;padding:14px 22px;font-weight:800;-webkit-appearance:none;appearance:none;-webkit-text-fill-color:#7f4d38;">メモを保存</button>'+
+        '<button class="delete-recipe-button" id="deleteRecipe" type="button" style="margin-top:10px;width:100%;background:#fff4f1;color:#9b3f2a;border:2px solid #9b3f2a;border-radius:14px;padding:14px 18px;font-weight:800;-webkit-appearance:none;appearance:none;-webkit-text-fill-color:#9b3f2a;">レシピを削除</button>'+
         (rating>0 && rating<=7
-          ? '<button class="improve-recipe-button" id="improveRecipe">このレシピを改善する</button>'
+          ? '<button class="improve-recipe-button" id="improveRecipe" style="margin-top:12px;width:100%;background:#f6f2ee;color:#7f4d38;border:2px solid #7f4d38;border-radius:14px;padding:14px 18px;font-weight:800;-webkit-appearance:none;appearance:none;-webkit-text-fill-color:#7f4d38;">このレシピを改善する</button>'
           : '')+
         '<div id="improvementPanel" class="improvement-panel" hidden></div>'+
       '</div>'+
