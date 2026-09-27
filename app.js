@@ -4,8 +4,27 @@ let cookingModeActive=false;
 
 const SUPABASE_URL='https://rddsbyawyhmihigbhbtj.supabase.co';
 const SUPABASE_KEY='sb_publishable_Cj1yZyLDkZfIVb-LrUR7bw_VPe9VMJn';
-const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const SUPABASE_TABLE='recipe_notes';
 let sharedRecipeData={};
+
+async function supabaseRequest(path,options={}){
+  const headers={
+    apikey:SUPABASE_KEY,
+    'Content-Type':'application/json',
+    ...(options.headers||{})
+  };
+  const response=await fetch(SUPABASE_URL+'/rest/v1/'+path,{
+    ...options,
+    headers
+  });
+  if(!response.ok){
+    const body=await response.text();
+    throw new Error('Supabase '+response.status+': '+body);
+  }
+  if(response.status===204) return null;
+  const text=await response.text();
+  return text?JSON.parse(text):null;
+}
 const els={
   q:document.querySelector('#q'),
   genre:document.querySelector('#genre'),
@@ -42,23 +61,23 @@ function getRating(id){return Number(sharedRecipeData[id]?.rating||0)}
 function getNote(id){return sharedRecipeData[id]?.note||''}
 
 async function loadSharedRecipeData(){
-  const {data,error}=await db
-    .from('recipe_notes')
-    .select('recipe_id,rating,note,updated_at');
+  try{
+    const data=await supabaseRequest(
+      SUPABASE_TABLE+'?select=recipe_id,rating,note,updated_at'
+    );
 
-  if(error){
+    sharedRecipeData={};
+    (data||[]).forEach(row=>{
+      sharedRecipeData[row.recipe_id]={
+        rating:Number(row.rating||0),
+        note:row.note||''
+      };
+    });
+    return true;
+  }catch(error){
     console.error('Supabase read error:',error);
     return false;
   }
-
-  sharedRecipeData={};
-  (data||[]).forEach(row=>{
-    sharedRecipeData[row.recipe_id]={
-      rating:Number(row.rating||0),
-      note:row.note||''
-    };
-  });
-  return true;
 }
 
 async function saveSharedRecipeData(id,{rating,note}){
@@ -68,19 +87,21 @@ async function saveSharedRecipeData(id,{rating,note}){
     note:note===undefined?current.note:String(note||'')
   };
 
-  const {error}=await db
-    .from('recipe_notes')
-    .upsert({
-      recipe_id:id,
-      rating:next.rating||null,
-      note:next.note,
-      updated_at:new Date().toISOString()
-    },{onConflict:'recipe_id'});
-
-  if(error){
-    console.error('Supabase save error:',error);
-    throw error;
-  }
+  await supabaseRequest(
+    SUPABASE_TABLE+'?on_conflict=recipe_id',
+    {
+      method:'POST',
+      headers:{
+        Prefer:'resolution=merge-duplicates,return=minimal'
+      },
+      body:JSON.stringify({
+        recipe_id:id,
+        rating:next.rating||null,
+        note:next.note,
+        updated_at:new Date().toISOString()
+      })
+    }
+  );
 
   sharedRecipeData[id]=next;
 }
@@ -255,7 +276,8 @@ function openRecipe(r){
         els.content.querySelector('#detailRating').textContent='★ '+newRating+' / 10';
         render();
       }catch(err){
-        alert('評価を保存できませんでした。通信状態を確認してください。');
+        console.error(err);
+        alert('評価を保存できませんでした。\n'+err.message);
       }
     });
   });
@@ -269,8 +291,10 @@ function openRecipe(r){
       b.textContent='保存しました';
       setTimeout(()=>{b.textContent='メモを保存';b.disabled=false;},900);
     }catch(err){
+      console.error(err);
       b.textContent='保存に失敗しました';
       b.disabled=false;
+      alert('メモを保存できませんでした。\n'+err.message);
     }
   });
   if(!els.dialog.open){els.dialog.showModal();els.dialog.scrollTop=0;}
