@@ -147,11 +147,11 @@ function openRecipe(r){
           '<span class="genre-pill"><span class="genre-icon">'+meta.icon+'</span>'+escapeHtml(meta.label)+'</span>'+
           '<p class="detail-kicker">'+escapeHtml(r.category).toUpperCase()+'</p>'+
         '</div>'+
-        '<h2>'+escapeHtml(r.title)+'</h2>'+
+        '<h2 id="recipeTitle">'+escapeHtml(r.title)+'</h2>'+
         '<div class="detail-meta">'+
           '<span>約 '+r.minutes+' 分</span>'+
           '<span>'+escapeHtml(r.servings)+'</span>'+
-          '<span>'+(rating?'★ '+rating+' / 10':'未評価')+'</span>'+
+          '<span id="detailRating" aria-live="polite">'+(rating?'★ '+rating+' / 10':'未評価')+'</span>'+
         '</div>'+
         '<p class="summary">'+escapeHtml(r.summary)+'</p>'+
         '<div class="cooking-toolbar">'+
@@ -159,11 +159,14 @@ function openRecipe(r){
           '<span id="cookingModeStatus" class="cooking-mode-status">画面の自動スリープを防ぎます</span>'+
         '</div>'+
       '</header>'+
+      '<div class="recipe-body"><div class="recipe-materials">'+
       section('材料','<ul class="ingredients-list">'+r.ingredients.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul>')+
+      '</div><div class="recipe-method">'+
       section('下準備','<ol>'+r.prep.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ol>')+
       section('調理手順','<ol>'+r.steps.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ol>')+
       section('失敗しないポイント','<ul>'+r.points.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul>')+
       section('追加すると美味しい食材・アレンジ','<ul>'+r.arrangements.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul>')+
+      '</div></div>'+
       '<div class="userbox">'+
         '<h3>自分の評価・メモ</h3>'+
         '<div class="stars">'+Array.from({length:10},(_,i)=>{const n=i+1;return '<button data-rating="'+n+'" class="'+(rating===n?'active':'')+'">★'+n+'</button>'}).join('')+'</div>'+
@@ -174,9 +177,15 @@ function openRecipe(r){
 
   setupCookingModeControls();
   els.content.querySelectorAll('[data-rating]').forEach(btn=>{
+    btn.setAttribute('aria-pressed',String(Number(btn.dataset.rating)===rating));
     btn.addEventListener('click',()=>{
       localStorage.setItem(keyRating(r.id),btn.dataset.rating);
-      openRecipe(r);
+      els.content.querySelectorAll('[data-rating]').forEach(option=>{
+        const selected=option.dataset.rating===btn.dataset.rating;
+        option.classList.toggle('active',selected);
+        option.setAttribute('aria-pressed',String(selected));
+      });
+      els.content.querySelector('#detailRating').textContent='★ '+btn.dataset.rating+' / 10';
       render();
     });
   });
@@ -186,7 +195,7 @@ function openRecipe(r){
     b.textContent='保存しました';
     setTimeout(()=>b.textContent='メモを保存',900);
   });
-  if(!els.dialog.open)els.dialog.showModal();
+  if(!els.dialog.open){els.dialog.showModal();els.dialog.scrollTop=0;}
 }
 
 els.q.addEventListener('input',render);

@@ -102,9 +102,9 @@ main{max-width:1180px;margin:auto;padding:0 24px 64px}
 .genre-oki{--accent:var(--oki);--accent-soft:var(--oki-soft)}
 .genre-other{--accent:var(--other);--accent-soft:var(--other-soft)}
 
-dialog{width:min(900px,94vw);max-height:92vh;padding:0;border:0;border-radius:20px;background:var(--paper);box-shadow:0 30px 80px rgba(0,0,0,.28)}
+dialog{width:min(1200px,96vw);max-width:96vw;max-height:94vh;max-height:94dvh;overscroll-behavior:contain;padding:0;border:0;border-radius:20px;background:var(--paper);box-shadow:0 30px 80px rgba(0,0,0,.28)}
 dialog::backdrop{background:rgba(11,20,15,.58);backdrop-filter:blur(3px)}
-#dialogContent{padding:34px 38px 42px}
+#dialogContent{padding:28px 32px 40px}
 .dialog-close{position:sticky;z-index:4;float:right;top:12px;margin:12px 12px 0 0;width:40px;height:40px;display:grid;place-items:center;border:1px solid #dddcd6;border-radius:50%;background:rgba(255,255,255,.92);color:#454945;font-size:22px}
 .detail-header{padding:8px 50px 24px 0;border-bottom:1px solid var(--line)}
 .detail-genre-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
@@ -114,7 +114,7 @@ dialog::backdrop{background:rgba(11,20,15,.58);backdrop-filter:blur(3px)}
 .detail .summary{margin:20px 0 0;color:#525852;line-height:1.85}
 .detail-section{margin-top:28px}.detail h3{display:flex;align-items:center;gap:9px;margin:0 0 13px;font-size:17px}.detail h3::before{content:"";width:4px;height:18px;border-radius:10px;background:var(--accent)}
 .detail ul,.detail ol{margin:0;padding-left:1.35em}.detail li{margin:7px 0;line-height:1.75}
-.ingredients-list{display:grid;grid-template-columns:1fr 1fr;gap:0 26px;list-style:none;padding:0!important;border-top:1px solid var(--line)}
+.ingredients-list{display:grid;grid-template-columns:1fr;gap:0;list-style:none;padding:0!important;border-top:1px solid var(--line)}
 .ingredients-list li{margin:0;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
 .userbox{margin-top:34px;padding:20px;border-radius:16px;background:var(--accent);color:white}.userbox h3{margin-top:0;color:white}.userbox h3::before{background:#d9e6dd}
 .stars{display:flex;flex-wrap:wrap;gap:5px;margin:10px 0 14px}.stars button{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:white;border-radius:8px;padding:7px 9px}.stars button.active{background:white;color:var(--accent);border-color:white}
@@ -138,3 +138,25 @@ textarea{width:100%;min-height:120px;resize:vertical;padding:12px;border:1px sol
 .cooking-mode-status{font-size:12px;color:var(--muted)}
 .cooking-mode-status.error{color:#9b4b3e}
 @media(max-width:620px){.search-row{grid-template-columns:1fr}.search-button{min-height:48px;width:100%}}
+
+/* Keep ingredients and instructions readable while cooking. */
+body:has(#recipeDialog[open]){overflow:hidden}
+.detail{overflow-wrap:anywhere}
+.recipe-body{display:grid;grid-template-columns:minmax(240px,1fr) minmax(0,2fr);gap:36px}
+.recipe-body>div{min-width:0}
+.recipe-method .detail-section{font-size:18px}
+.recipe-method li{margin:0 0 18px;line-height:1.8}
+.recipe-method ol li::marker{color:var(--accent);font-weight:800;font-size:1.15em}
+.ingredients-list li{font-size:16px}
+.cooking-toolbar{flex-wrap:wrap}
+@media(max-width:800px){
+  .recipe-body{grid-template-columns:minmax(0,1fr);gap:0}
+}
+@media(max-width:620px){
+  #recipeDialog{width:100%;max-width:100%;height:100%;height:100dvh;max-height:100%;max-height:100dvh;margin:0;border-radius:0}
+  #dialogContent{padding:24px 16px max(32px,env(safe-area-inset-bottom))}
+  .detail-header{padding-right:0}
+  .detail-genre-row{padding-right:48px;flex-wrap:wrap}
+  .dialog-close{width:44px;height:44px;top:max(8px,env(safe-area-inset-top));margin:8px 8px 0 0}
+  .userbox{padding:16px}
+}
