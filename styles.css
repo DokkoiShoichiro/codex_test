@@ -214,3 +214,28 @@ body:has(#recipeDialog[open]){overflow:hidden}
   font-size:.9rem;
   opacity:.72;
 }
+
+
+.improvement-prompt{
+  width:100%;
+  min-height:260px;
+  box-sizing:border-box;
+  resize:vertical;
+  border:1px solid rgba(25,57,45,.18);
+  border-radius:12px;
+  padding:12px;
+  background:#fff;
+  font:inherit;
+  line-height:1.6;
+}
+.improvement-actions{
+  margin-top:10px;
+}
+.copy-improvement-button{
+  width:100%;
+  border:0;
+  border-radius:12px;
+  padding:12px 14px;
+  font-weight:800;
+  cursor:pointer;
+}
