@@ -152,7 +152,10 @@ function getVersions(id){
 
 function getCurrentVersion(id){
   const versions=getVersions(id);
-  return versions.length ? Math.max(...versions.map(v=>Number(v.version)||1)) : 1;
+  const cloudVersion=versions.length ? Math.max(...versions.map(v=>Number(v.version)||1)) : 1;
+  const base=recipes.find(r=>r.id===id);
+  const baseVersion=Math.max(1,Number(base?.version)||1);
+  return Math.max(cloudVersion,baseVersion);
 }
 
 function getLatestVersionRow(id){
@@ -236,6 +239,9 @@ function applyLatestVersions(){
   recipes=recipes.map(base=>{
     const latest=getLatestVersionRow(base.id);
     if(!latest || !latest.recipe_data) return base;
+    const baseVersion=Math.max(1,Number(base.version)||1);
+    const cloudVersion=Math.max(1,Number(latest.version)||1);
+    if(cloudVersion<baseVersion) return base;
     return {...base,...latest.recipe_data,id:base.id};
   });
 }
@@ -536,8 +542,8 @@ function openRecipe(r){
           '<span class="version-badge">ver.'+getCurrentVersion(r.id)+'</span>'+
         '</div>'+
         '<p class="summary">'+escapeHtml(r.summary)+'</p>'+
-        (getVersions(r.id).length>1
-          ? '<button id="versionHistoryButton" class="version-history-button" type="button">過去のバージョンを見る（'+(getVersions(r.id).length-1)+'）</button>'
+        (getVersions(r.id).filter(v=>Number(v.version)<getCurrentVersion(r.id)).length>0
+          ? '<button id="versionHistoryButton" class="version-history-button" type="button">過去のバージョンを見る（'+getVersions(r.id).filter(v=>Number(v.version)<getCurrentVersion(r.id)).length+'）</button>'
           : '')+
         '<div id="versionHistoryPanel" class="version-history-panel" hidden></div>'+
         '<div class="cooking-toolbar">'+
@@ -815,7 +821,7 @@ async function syncSharedData(){
 
 async function initialize(){
   try{
-    const response=await fetch('recipes.json?v=20260927-4',{cache:'no-store'});
+    const response=await fetch('recipes.json?v=20260927-5',{cache:'no-store'});
     if(!response.ok) throw new Error('recipes.json: '+response.status);
     recipes=await response.json();
 
