@@ -168,16 +168,29 @@ function getVersionRow(id,version){
 }
 
 async function bootstrapRecipeVersions(){
-  const missing=recipes.filter(r=>getVersions(r.id).length===0);
-  if(!missing.length) return;
+  const rows=[];
+  const upgradedIds=[];
 
-  const rows=missing.map(r=>({
-    recipe_id:r.id,
-    version:1,
-    recipe_data:r,
-    rating:getRating(r.id)||null,
-    note:getNote(r.id)||''
-  }));
+  recipes.forEach(r=>{
+    const versions=getVersions(r.id);
+    const baseVersion=Math.max(1,Number(r.version)||1);
+    const latestVersion=versions.length
+      ? Math.max(...versions.map(v=>Number(v.version)||1))
+      : 0;
+
+    if(baseVersion>latestVersion){
+      rows.push({
+        recipe_id:r.id,
+        version:baseVersion,
+        recipe_data:r,
+        rating:latestVersion===0 ? (getRating(r.id)||null) : null,
+        note:latestVersion===0 ? (getNote(r.id)||'') : ''
+      });
+      if(latestVersion>0) upgradedIds.push(r.id);
+    }
+  });
+
+  if(!rows.length) return;
 
   await supabaseRequest(
     RECIPE_VERSIONS_TABLE,
@@ -189,11 +202,34 @@ async function bootstrapRecipeVersions(){
   );
 
   rows.forEach(row=>{
-    recipeVersions[row.recipe_id]=[{
+    if(!recipeVersions[row.recipe_id]) recipeVersions[row.recipe_id]=[];
+    recipeVersions[row.recipe_id].push({
       ...row,
       created_at:new Date().toISOString()
-    }];
+    });
   });
+
+  for(const id of upgradedIds){
+    await supabaseRequest(
+      SUPABASE_TABLE+'?on_conflict=recipe_id',
+      {
+        method:'POST',
+        headers:{Prefer:'resolution=merge-duplicates,return=minimal'},
+        body:JSON.stringify({
+          recipe_id:id,
+          rating:null,
+          note:'',
+          deleted:Boolean(sharedRecipeData[id]?.deleted),
+          updated_at:new Date().toISOString()
+        })
+      }
+    );
+    sharedRecipeData[id]={
+      ...(sharedRecipeData[id]||{}),
+      rating:0,
+      note:''
+    };
+  }
 }
 
 function applyLatestVersions(){
@@ -779,7 +815,7 @@ async function syncSharedData(){
 
 async function initialize(){
   try{
-    const response=await fetch('recipes.json?v=20260927-3',{cache:'no-store'});
+    const response=await fetch('recipes.json?v=20260927-4',{cache:'no-store'});
     if(!response.ok) throw new Error('recipes.json: '+response.status);
     recipes=await response.json();
 
