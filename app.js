@@ -1,4 +1,6 @@
 let recipes=[];
+let wakeLock=null;
+let cookingModeActive=false;
 const els={
   q:document.querySelector('#q'),
   genre:document.querySelector('#genre'),
@@ -15,7 +17,8 @@ const els={
   totalRecipes:document.querySelector('#totalRecipes'),
   ratedRecipes:document.querySelector('#ratedRecipes'),
   topRated:document.querySelector('#topRated'),
-  genreLegend:document.querySelector('#genreLegend')
+  genreLegend:document.querySelector('#genreLegend'),
+  searchButton:document.querySelector('#searchButton')
 };
 
 const GENRE_META={
@@ -44,9 +47,16 @@ function renderLegend(){
   els.genreLegend.innerHTML='';
   usedGenres.forEach(genre=>{
     const meta=getGenreMeta(genre);
-    const chip=document.createElement('span');
-    chip.className='legend-chip';
+    const chip=document.createElement('button');
+    chip.type='button';
+    chip.className='legend-chip'+(els.genre.value===genre?' active':'');
+    chip.dataset.genre=genre;
     chip.innerHTML='<span class="legend-icon '+meta.className+'">'+meta.icon+'</span><span>'+escapeHtml(meta.label)+'</span>';
+    chip.addEventListener('click',()=>{
+      els.genre.value = els.genre.value===genre ? '' : genre;
+      renderLegend();
+      render();
+    });
     els.genreLegend.appendChild(chip);
   });
 }
@@ -144,6 +154,10 @@ function openRecipe(r){
           '<span>'+(rating?'★ '+rating+' / 10':'未評価')+'</span>'+
         '</div>'+
         '<p class="summary">'+escapeHtml(r.summary)+'</p>'+
+        '<div class="cooking-toolbar">'+
+          '<button id="cookingModeButton" class="cooking-mode-button" type="button">🍳 料理モード ON</button>'+
+          '<span id="cookingModeStatus" class="cooking-mode-status">画面の自動スリープを防ぎます</span>'+
+        '</div>'+
       '</header>'+
       section('材料','<ul class="ingredients-list">'+r.ingredients.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul>')+
       section('下準備','<ol>'+r.prep.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ol>')+
@@ -158,6 +172,7 @@ function openRecipe(r){
       '</div>'+
     '</article>';
 
+  setupCookingModeControls();
   els.content.querySelectorAll('[data-rating]').forEach(btn=>{
     btn.addEventListener('click',()=>{
       localStorage.setItem(keyRating(r.id),btn.dataset.rating);
@@ -174,9 +189,15 @@ function openRecipe(r){
   if(!els.dialog.open)els.dialog.showModal();
 }
 
-['input','change'].forEach(evt=>{
-  [els.q,els.genre,els.category,els.minutes,els.rating,els.sort].forEach(el=>{
-    el.addEventListener(evt,render);
+els.q.addEventListener('input',render);
+els.q.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();render();els.q.blur();}
+});
+els.searchButton.addEventListener('click',()=>{render();els.q.blur();});
+[els.genre,els.category,els.minutes,els.rating,els.sort].forEach(el=>{
+  el.addEventListener('change',()=>{
+    if(el===els.genre) renderLegend();
+    render();
   });
 });
 els.clear.addEventListener('click',()=>{
@@ -190,6 +211,72 @@ els.clear.addEventListener('click',()=>{
 });
 els.close.addEventListener('click',()=>els.dialog.close());
 els.dialog.addEventListener('click',e=>{if(e.target===els.dialog)els.dialog.close()});
+els.dialog.addEventListener('close',()=>disableCookingMode());
+
+async function enableCookingMode(){
+  const button=els.content.querySelector('#cookingModeButton');
+  const status=els.content.querySelector('#cookingModeStatus');
+  if(!('wakeLock' in navigator)){
+    if(status){status.textContent='このブラウザは料理モードに対応していません';status.classList.add('error');}
+    return;
+  }
+  try{
+    wakeLock=await navigator.wakeLock.request('screen');
+    cookingModeActive=true;
+    if(button){button.classList.add('active');button.textContent='🍳 料理モード OFF';}
+    if(status){status.textContent='料理モード中：画面をスリープさせません';status.classList.remove('error');}
+    wakeLock.addEventListener('release',()=>{
+      wakeLock=null;
+      if(cookingModeActive && document.visibilityState==='visible') reacquireWakeLock();
+    },{once:true});
+  }catch(err){
+    cookingModeActive=false;
+    if(status){status.textContent='料理モードを開始できませんでした';status.classList.add('error');}
+  }
+}
+
+async function reacquireWakeLock(){
+  if(!cookingModeActive || document.visibilityState!=='visible' || wakeLock) return;
+  try{
+    wakeLock=await navigator.wakeLock.request('screen');
+    const button=els.content.querySelector('#cookingModeButton');
+    const status=els.content.querySelector('#cookingModeStatus');
+    if(button){button.classList.add('active');button.textContent='🍳 料理モード OFF';}
+    if(status){status.textContent='料理モード中：画面をスリープさせません';status.classList.remove('error');}
+    wakeLock.addEventListener('release',()=>{wakeLock=null;},{once:true});
+  }catch(err){}
+}
+
+async function disableCookingMode(){
+  cookingModeActive=false;
+  if(wakeLock){
+    try{await wakeLock.release();}catch(err){}
+    wakeLock=null;
+  }
+  const button=els.content.querySelector('#cookingModeButton');
+  const status=els.content.querySelector('#cookingModeStatus');
+  if(button){button.classList.remove('active');button.textContent='🍳 料理モード ON';}
+  if(status){status.textContent='画面の自動スリープを防ぎます';status.classList.remove('error');}
+}
+
+function setupCookingModeControls(){
+  const button=els.content.querySelector('#cookingModeButton');
+  const status=els.content.querySelector('#cookingModeStatus');
+  if(!button) return;
+  if(!('wakeLock' in navigator) && status){
+    status.textContent='このブラウザは料理モードに対応していません';
+    status.classList.add('error');
+    button.disabled=true;
+  }
+  button.addEventListener('click',()=>{
+    if(cookingModeActive) disableCookingMode();
+    else enableCookingMode();
+  });
+}
+
+document.addEventListener('visibilitychange',()=>{
+  if(cookingModeActive && document.visibilityState==='visible') reacquireWakeLock();
+});
 
 fetch('recipes.json')
   .then(r=>r.json())
