@@ -825,7 +825,7 @@ async function syncSharedData(){
 
 async function initialize(){
   try{
-    const response=await fetch('recipes.json?v=20260927-5',{cache:'no-store'});
+    const response=await fetch('recipes.json?v='+Date.now(),{cache:'no-store'});
     if(!response.ok) throw new Error('recipes.json: '+response.status);
     recipes=await response.json();
 
